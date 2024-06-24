@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commutify - Bus Stop Heatmap</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 54px;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 40px;
+            font-weight: normal;
+        }
+        .input-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+        input[type="text"] {
+            width: calc(100% - 44px);
+            height: 44px;
+            padding: 12px;
+            font-size: 18px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #333;
+            color: #fff;
+            transition: border-color 0.3s;
+            padding-right: 44px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00796b;
+        }
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+        .submit-button {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 44px;
+            height: 44px;
+            line-height: 44px;
+            background-color: #009688;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .submit-button:hover {
+            background-color: #00796b;
+        }
+        .submit-button .loading-icon {
+            display: none;
+            width: 28px;
+            height: 28px;
+        }
+        .submit-button.loading .loading-icon {
+            display: inline-block;
+        }
+        .submit-button span {
+            display: inline-block;
+        }
+        .submit-button.loading span {
+            display: none;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .error-message.hidden {
+            display: none;
+        }
+        .map-container {
+            width: 100%;
+            display: none;
+        }
+        .map-container iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            font-size: 18px;
+            background-color: #009688;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+            display: none;
+            z-index: 1000;
+        }
+        .back-to-top:hover {
+            background-color: #00796b;
+        }
+        .copyright {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Commutify</h1>
+        <h2>Measuring Urban Access</h2>
+        <form id="cityForm" method="POST" action="/">
+            <div class="input-container">
+                <input type="text" id="city" name="city" required placeholder="Enter city name">
+                <button type="button" class="submit-button" id="submitBtn"><span>Go</span><img class="loading-icon" src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/0.16.1/images/loader-large.gif" alt="Loading..." width="28" height="28"></button>
+            </div>
+        </form>
+        <div id="errorMessage" class="error-message hidden"></div>
+    </div>
+    <div id="mapContainer" class="map-container">
+        <iframe id="mapFrame" src="" frameborder="0"></iframe>
+    </div>
+    <button id="backToTopBtn" class="back-to-top">↑</button>
+    <div class="copyright">
+        &copy; 2024 Commutify. All rights reserved.
+    </div>
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', function () {
+            submitForm();
+        });
+
+        document.getElementById('cityForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission
+            submitForm();
+        });
+
+        function submitForm() {
+            var cityInput = document.getElementById('city');
+            if (cityInput.value.trim() === '') {
+                showError('Please enter a city name.');
+                return;
+            }
+            var submitButton = document.getElementById('submitBtn');
+            submitButton.classList.add('loading');
+            var form = document.getElementById('cityForm');
+            form.submit();
+        }
+
+        function showError(message) {
+            var errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        window.onload = function() {
+            var city = "{{ city }}";
+            var mapFile = "{{ map_file }}";
+
+            var submitButton = document.getElementById('submitBtn');
+            submitButton.classList.remove('loading');
+
+            if (city) {
+                document.getElementById('city').value = city;
+            }
+
+            if (mapFile) {
+                var mapContainer = document.getElementById('mapContainer');
+                var mapFrame = document.getElementById('mapFrame');
+                mapFrame.src = "/maps/" + mapFile;
+                mapContainer.style.display = 'block';
+
+                setTimeout(function() {
+                    mapContainer.scrollIntoView({ behavior: 'smooth' });
+                }, 500);
+            }
+        }
+
+        window.addEventListener('scroll', function() {
+            var backToTopBtn = document.getElementById('backToTopBtn');
+            if (window.scrollY > window.innerHeight-50) {
+                backToTopBtn.style.display = 'block';
+            } else {
+                backToTopBtn.style.display = 'none';
+            }
+        });
+
+        document.getElementById('backToTopBtn').addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
+</body>
+</html>
